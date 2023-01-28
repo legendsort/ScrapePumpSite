@@ -1,3 +1,4 @@
+import re
 from scrapy.selector import Selector
 import scrapy
 import sys
@@ -49,9 +50,9 @@ class PumpSiteSpider(scrapy.Spider):
                 fullDetailHeaderSelector = "#product-attribute-specs-table th::text"
                 fullDetailContentSelector = "#product-attribute-specs-table td::text"
                 imgURLSelector = "div.c-gallery__thumbs img::attr(src)"
-                variationSelector = "div.fielfdry label.label span::text"
+                variationSelector = "#product-options-wrapper span::text"
                 variationDataSelector = "div.fieldset div.control select"
-                variationDataInsideSelector = "option::text"
+                variationDataInsideSelector = "select option::text"
                 downloadSelector = "div.product-attachment-container a::attr(href)"
 
                 productName = response.css(productNameSelector).get()
@@ -87,17 +88,22 @@ class PumpSiteSpider(scrapy.Spider):
                         fullDetailindex[7] = i
                     if fullDetailHeader[i] == "Material":
                         fullDetailindex[8] = i
+
                     fullDetailHeader[i] = fullDetailHeader[i].strip()
                     fullDetailContent[i] = fullDetailContent[i].strip()
                     fullDetail += f'{fullDetailHeader[i]} : {fullDetailContent[i]}\n'
                 imgURL = response.css(imgURLSelector).getall()
                 variation = response.css(variationSelector).getall()
-                variationSelect = response.css(variationDataSelector).getall()
+                variationSelect = response.css(variationDataSelector)
+
+                def format(string):
+                    return re.sub(r'[\n ]+', ' ', string)
 
                 variationText = []
-                # for i in range(len(variation)):
-                #     variationText.append(variationSelect.css(
-                #         variationDataInsideSelector).getall())
+                for select in variationSelect:
+                    data = select.css(variationDataInsideSelector).getall()[1:]
+                    formatData = list(map(format, data))
+                    variationText.append(formatData)
                 download = response.css(downloadSelector).getall()
                 yield {
                     "URL": url,
@@ -108,8 +114,8 @@ class PumpSiteSpider(scrapy.Spider):
                     "Product Code": productCode,
                     "Mrp price": mrpPrice,
                     "Price": price,
-                    "Overview & Spec": overview[0],
-                    "DELIVERY & RETURNS": delivery[0],
+                    "Overview & Spec": overview[0] if len(overview) > 0 else "",
+                    "DELIVERY & RETURNS": delivery[0] if len(delivery) > 0 else "",
                     "Full details of table content": fullDetail,
                     "Manufacturer": fullDetailContent[fullDetailindex[0]] if fullDetailindex[0] != -1 else "",
                     "Weight": fullDetailContent[fullDetailindex[1]] if fullDetailindex[1] != -1 else "",
@@ -129,23 +135,23 @@ class PumpSiteSpider(scrapy.Spider):
                     "Image url-7": imgURL[6] if len(imgURL) > 6 else "",
                     "Variation option-1 name": variation[0] if len(variation) > 0 else "",
                     "Variation option-2 name": variation[1] if len(variation) > 1 else "",
-                    "Variation option-1": variationText[0][1] if len(variation) > 0 and len(variationSelect[0]) > 0 else "",
-                    "Variation option-2": variationText[0][2] if len(variation) > 0 and len(variationSelect[0]) > 1 else "",
-                    "Variation option-3": variationText[0][3] if len(variation) > 0 and len(variationSelect[0]) > 2 else "",
-                    "Variation option-4": variationText[0][4] if len(variation) > 0 and len(variationSelect[0]) > 3 else "",
-                    "Variation option-5": variationText[0][5] if len(variation) > 0 and len(variationSelect[0]) > 4 else "",
-                    "Variation option-6": variationText[0][6] if len(variation) > 0 and len(variationSelect[0]) > 5 else "",
-                    "Variation option-7": variationText[0][7] if len(variation) > 0 and len(variationSelect[0]) > 6 else "",
-                    "Variation option-8": variationText[0][8] if len(variation) > 0 and len(variationSelect[0]) > 7 else "",
-                    "Variation option-9": variationText[0][9] if len(variation) > 0 and len(variationSelect[0]) > 8 else "",
-                    "2 variation option-1": variationText[1][1] if len(variation) > 1 else "",
-                    "3 variation option-1": variationText[2][1] if len(variation) > 2 else "",
-                    "4 variation option-1": variationText[3][1] if len(variation) > 3 else "",
-                    "5 variation option-1": variationText[4][1] if len(variation) > 4 else "",
-                    "6 variation option-1": variationText[5][1] if len(variation) > 5 else "",
-                    "7 variation option-1": variationText[6][1] if len(variation) > 6 else "",
-                    "8 variation option-1": variationText[7][1] if len(variation) > 7 else "",
-                    "9 variation option-1": variationText[8][1] if len(variation) > 8 else "",
+                    "Variation option-1": variationText[0][0] if len(variation) > 0 and len(variationText[0]) > 1 else "",
+                    "Variation option-2": variationText[0][1] if len(variation) > 0 and len(variationText[0]) > 2 else "",
+                    "Variation option-3": variationText[0][2] if len(variation) > 0 and len(variationText[0]) > 3 else "",
+                    "Variation option-4": variationText[0][3] if len(variation) > 0 and len(variationText[0]) > 4 else "",
+                    "Variation option-5": variationText[0][4] if len(variation) > 0 and len(variationText[0]) > 5 else "",
+                    "Variation option-6": variationText[0][5] if len(variation) > 0 and len(variationText[0]) > 6 else "",
+                    "Variation option-7": variationText[0][6] if len(variation) > 0 and len(variationText[0]) > 7 else "",
+                    "Variation option-8": variationText[0][7] if len(variation) > 0 and len(variationText[0]) > 8 else "",
+                    "Variation option-9": variationText[0][8] if len(variation) > 0 and len(variationText[0]) > 9 else "",
+                    "2 variation option-1": variationText[1][0] if len(variation) > 1 and len(variation) > 1 else "",
+                    "3 variation option-1": variationText[1][1] if len(variation) > 1 and len(variation) > 2 else "",
+                    "4 variation option-1": variationText[1][2] if len(variation) > 1 and len(variation) > 3 else "",
+                    "5 variation option-1": variationText[1][3] if len(variation) > 1 and len(variation) > 4 else "",
+                    "6 variation option-1": variationText[1][4] if len(variation) > 1 and len(variation) > 5 else "",
+                    "7 variation option-1": variationText[1][5] if len(variation) > 1 and len(variation) > 6 else "",
+                    "8 variation option-1": variationText[1][6] if len(variation) > 1 and len(variation) > 7 else "",
+                    "9 variation option-1": variationText[1][7] if len(variation) > 1 and len(variation) > 8 else "",
                     "File Downloads link-1": download[0] if len(download) > 0 else "",
                     "File Downloads link-2": download[1] if len(download) > 1 else "",
                     "File Downloads link-3": download[2] if len(download) > 2 else "",
